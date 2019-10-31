@@ -1,3 +1,12 @@
+#' ---
+#' title: "Class05 Data Exploration and Visualization"
+#' author: "Duy Tong"
+#' date: "October 31st, 2019"
+#' output: github_document
+#' ---
+
+
+
 # Class5 Data Visualization
 x <- rnorm(1000)
 # some summary stats
