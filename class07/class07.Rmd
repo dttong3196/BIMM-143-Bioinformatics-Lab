@@ -1,0 +1,241 @@
+---
+title: "Class 7 R Functions and Packages"
+author: "Duy Tong"
+date: "10/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Functions Revisited
+
+Source my functions from last day
+
+```{r}
+source("http://tinyurl.com/rescale-R")
+```
+
+
+```{r}
+rescale(1:10)
+```
+
+```{r}
+rescale( c(1, 10, 5, NA, 6))
+```
+
+#is.numeric & !is.numeric functions
+> ?is.numeric
+> is.numeric(1:10)
+[1] TRUE
+> is.numeric(c(1,5,NA,10))
+[1] TRUE
+> is.numeric(c(1,5,NA,10,"duy"))
+[1] FALSE
+> !is.numeric(c(1,5,NA,10,"duy"))
+[1] TRUE
+> is.numeric(c(1,5,NA,10))
+[1] TRUE
+> !is.numeric(c(1,5,NA,10))
+[1] FALSE
+# ! added to is.numeric will flip false -> true / vice versa.
+
+#```{r}
+rescale2(c(1:10, "duy"))
+```
+
+#```{r}
+rescale(c(1:10, "duy"))
+```
+Cannot run if there is a character
+
+#Write a function to find where there are NA elements in two input vectors.
+
+#First make some simple input where I know the answer!
+```{r}
+x<- c( 1, 2, NA, 3, NA)
+y<- c(NA, 3, NA, 3, 4)
+```
+#Looked online and found the **is.na()** function
+```{r}
+is.na(x)
+```
+#and the **which()** function tells me where the TRUE values are
+```{r}
+which(is.na(x))
+```
+
+```{r}
+which(is.na(y))
+```
+
+```{r}
+is.na(x)
+is.na(y)
+```
+#The AND function requires two input TRUE to give a TRUE output
+```{r}
+is.na(x) & is.na(y)
+```
+
+```{r}
+sum(c(TRUE,TRUE, FALSE,TRUE))
+```
+#Takine the **sum()** of TRUE FALSE vector will tell me how many TRUE elements I have. (TRUE and FALSE vector cancels out). This is my working snippet!! (CODE BELOW IS THE BODY)
+```{r}
+sum(is.na(x) & is.na(y))
+```
+
+#Turn Into a Function
+```{r}
+both_na <- function(x,y) {
+  sum(is.na(x) & is.na(y))
+}
+```
+#Double Check Your Function
+```{r}
+both_na(x,y)
+```
+
+#eejit proofing
+```{r}
+x <-  c(NA, NA, NA)
+y1 <- c( 1, NA, NA)
+y2 <- c( 1, NA, NA, NA)
+```
+
+```{r}
+both_na(x,y1)
+```
+
+#What will this return?
+```{r}
+both_na(x, y2)
+```
+
+#Make input different length...
+```{r}
+x2 <- c(NA,NA)
+```
+
+```{r}
+both_na(x2,y2)
+```
+
+```{r}
+plot(1:10, col=c("red","blue", "green"))
+```
+
+#Recycle x/y3 -> take the first NA of x add on to the next NA on y3 and keep add on to the NA on y3 -> meaning of recycled vector.
+```{r}
+x <-  c(NA, NA, NA)
+y3 <- c( 1, NA, NA, NA, NA, NA, NA)
+both_na(x, y3)
+```
+#If like this...
+```{r}
+x3 <- c(1, NA, NA)
+y3 <- c(1, NA, NA, NA, NA, NA, NA)
+both_na(x, y3)
+```
+
+#If like this...
+```{r}
+x <- c(1, NA, NA, 1, NA, NA, 1)
+y3 <- c(1, NA, NA, NA, NA, NA, NA)
+both_na(x3, y3)
+```
+
+#Stop() Function & Add a check for when inputs x and y are not the same length. Should do this early to catch the potential problems.
+```{r}
+both_na2 <- function(x,y) {
+  if(length(x) != length(y)) {
+    stop("Inputs x and y should be the same length!")
+  }
+  sum(is.na(x) & is.na(y))
+}
+```
+
+#Test it
+#```{r}
+both_na2 (x,y3)
+```
+
+
+#Length() Function
+```{r}
+length(x)
+length(y3)
+```
+
+#Write a Function Practice!
+#Student 1
+c(100, 100, 100, 100, 100, 100, 100, 90)
+#Student 2
+c(100, NA, 90, 90, 90, 90, 97, 80)
+```{r}
+#Student 1
+s1 <- c(100, 100, 100, 100, 100, 100, 100, 90)
+#Student 2
+s2 <- c(100, NA, 90, 90, 90, 90, 97, 80)
+
+mean(s1[-which.min(s1)])
+mean(s2[-which.min(s2)])
+```
+#na.rm = TRUE means 0
+```{r}
+which.min(s2)
+s2[-which.min(s2)]
+mean(s2[-which.min(s2)], na.rm = TRUE)
+```
+
+```{r}
+any(is.na(s2))
+any(is.na(s1))
+```
+
+
+#We have our working code now turn it into a first function. #If we use warning
+```{r}
+grade <- function(x) {
+  if(any(is.na(x))) {
+    warning("Stduent is missing homework")
+  }
+  mean(x[-which.min(x)], na.rm = TRUE)
+}
+```
+
+```{r}
+grade(s1)
+grade(s2)
+```
+#If you only did one homework and rest are NA...
+```{r}
+grade2 <- function(x) {
+  if(any(is.na(x))) {
+    warning("Stduent is missing homework")
+  }
+  sum(x[-which.min(x)], na.rm = TRUE /length(x)-1)
+}
+```
+
+```{r}
+s3 <- c(100, NA, NA, NA, NA)
+grade2(s3)
+```
+
+```{r}
+url <- "https://tinyurl.com/gradeinput"
+hw <-read.csv(url, row.names =1)
+```
+
+```{r}
+apply(hw,1, grade)
+```
+
+
+
+
+
