@@ -1,0 +1,233 @@
+---
+title: "Class09 Unsupervised Learning Mini-Project"
+author: "Duy Tong"
+date: "10/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Save your input data file to a new 'data' directory
+```{r}
+wisc.df <- read.csv("WisconsinCancer.csv")
+head(wisc.df)
+```
+
+# **nrow()** tells us the number of rows for # of patients Note that the `id` and `diagnosis` columns will not be used for most of the following steps.
+```{r}
+nrow(wisc.df)
+```
+
+# Beign & Maliganant
+
+```{r}
+table(wisc.df$diagnosis)
+```
+
+# Complete the following code to input the data and store as wisc.df
+```{r}
+wisc.data <- as.matrix(wisc.df[,3:32])
+#[,3:32]) tells you only to consider from column 3 to column 32 and excluding other column 1,2
+```
+
+# Set the row names of wisc.data
+```{r}
+row.names(wisc.data) <- wisc.df$id
+head(wisc.data)
+```
+
+# Create diagnosis vector for later
+```{r}
+diagnosis <- wisc.df$diagnosis
+```
+
+## Question
+Q1. How many observations are in this dataset?
+```{r}
+nrow(wisc.data)
+```
+
+Q2. How many of the observations have a malignant diagnosis?
+```{r}
+table(wisc.data)
+```
+
+Q3. How many variables/features in the data are suffixed with _mean?
+```{r}
+grep("_mean", colnames(wisc.df), value = TRUE)
+```
+
+# Solved Q3
+```{r}
+grep("_mean", colnames(wisc.df), value = TRUE)
+length(grep("_mean", colnames(wisc.df)))
+```
+
+## Section 2: Performing PCA
+
+# Check  Column Mean & Standard Deviations
+```{r}
+colMeans(wisc.data)
+apply(wisc.data, 2, sd)
+```
+
+```{r}
+round(colMeans(wisc.data), 3)
+round(apply(wisc.data, 2, sd), 3)
+```
+
+# Scale = TRUE because the means are different
+# Execute PCA With **prcomp()**
+```{r}
+wisc.pr <- prcomp(wisc.data, scale = TRUE)
+summary(wisc.pr)
+```
+
+#Lets Make a Plot of PC1 vs PC2
+```{r}
+plot(wisc.pr$x[,1], wisc.pr$x[,2])
+```
+
+#Color by Cancer / Non-Cancer
+```{r}
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col = diagnosis)
+```
+
+```{r}
+biplot(wisc.pr)
+```
+
+## Questions
+Q4. From your results, what proportion of the original variance is captured by the first principal components (PC1)?
+```{r}
+x <- summary(wisc.pr)
+x$importance[, "PC1"]
+#x$importance[,1]
+```
+
+Q5. How many principal components (PCs) are required to describe at least 70% of the original variance in the data?
+```{r}
+which(x$importance[3,] < 0.7)[1]
+```
+  
+Q6. How many principal components (PCs) are required to describe at least 90% of the original variance in the data?
+```{r}
+which(x$importance[3,] > 0.9)[1]
+```
+
+Q7. What stands out to you about this plot? Is it easy or difficult to understand? Why?
+  It's messy! It has so much data together very hard to see.
+
+## Section 3: Hierarchical Clustering
+```{r}
+data.scaled <- scale(wisc.data)
+```
+
+# Calculate Euclidean Distances
+```{r}
+data.dist <- dist(data.scaled)
+```
+
+# Create Hiearachial Clustering Model
+```{r}
+wisc.hclust <- hclust(data.dist, method = "complete")
+```
+
+#Plot
+```{r}
+plot(wisc.hclust)
+abline(h = 19, col= "red", lty =2)
+```
+
+# Selecting Number of Clusters
+
+```{r}
+wisc.hclust.clusters <- cutree(wisc.hclust, k = 4)
+```
+
+```{r}
+table(wisc.hclust.clusters, diagnosis)
+```
+
+# Q12: Can you find a better cluster vs. diagnoses match with by cutting into a different number of clusters between 2 and 10?
+  Yes, if you set k = 4, it separates the cluster vs. diagnosis. Different number of cluster of different specificities. Too little of a k-value reusults in false possibiit while too high of number reusults in better separation; if increase k-values -> results in more specifics (not existance data)
+
+## K-Means Clustering
+```{r}
+wisc.km <- kmeans(wisc.data, centers = 2, nstart = 20)
+wisc.km
+```
+
+# Q13: How well does k-means separate the two diagnosis? How does it compare to your hclust results?
+
+```{r}
+table(wisc.hclust.clusters, wisc.km$cluster)
+```
+
+## Section 5: Combining Methods
+```{r}
+wisc.pr.hclust <- hclust(dist(wisc.pr$x[,1:7]), method = "ward.D2")
+```
+
+```{r}
+grps <- cutree(wisc.pr.hclust, k =2)
+table(grps)
+```
+
+```{r}
+table(grps , diagnosis)
+#Sum of group 1 row (B+M) = 216
+#Sum of group 2 row (B+M) = 353
+```
+
+```{r}
+plot(wisc.pr$x[,1:2], col=grps)
+```
+
+```{r}
+plot(wisc.pr$x[,1:2], col = diagnosis)
+```
+
+```{r}
+g <- as.factor(grps)
+levels(g)
+```
+
+```{r}
+g <- relevel(g,2)
+levels(g)
+```
+
+# Plot using our re-order factor
+```{r}
+plot(wisc.pr$x[,1:2], col=g)
+```
+
+# Q14. How well does the newly created model with four clusters separate out the two diagnoses?
+
+# Q15 clustering models you created in previous sections (i.e. before PCA) do in terms of separating the diagnoses? Again, use the table() function to compare the output of each model (wisc.km$cluster and wisc.hclust.clusters) with the vector containing the actual diagnoses.
+
+# Q16. Which of your analysis procedures resulted in a clustering model with the best specificity? How about sensitivity?
+
+## Section 7: Prediction
+```{r}
+new <- read.csv("new_samples copy Section 7.csv")
+npc <- predict(wisc.pr, newdata = new)
+npc
+```
+
+```{r}
+plot(wisc.pr$x[,1:2], col=g)
+points(npc[,1], npc[,2], col="blue", pch=16, cex=3)
+text(npc[,1], npc[,2], c(1,2), col="white")
+```
+
+# Q17. Which of these new patients should we prioritize for follow up based on your results?
+  Patient 2 should be prioritized because patient 2 is closer to malignant diagnosis than patient 1. As looking at the plot, patient 2 has more red dots than patient 2 (red dots = malignant , black dots = non-malignant).
+
+## Section 8: PCA of Protein Structure Data
+```{r}
+sessionInfo()
+```
