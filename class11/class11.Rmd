@@ -1,0 +1,81 @@
+---
+title: "Class 11: Structural Bioinformatics 1"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The PDB Database for Biomolecular Structure Data
+
+> Q1: Determine the percentage of structures solved by X-Ray and Electron Microscopy.
+    Percentage for structures solved by X-Ray = 89%
+    Percentage for structured solved by Electron Microscopy = 2.5%
+  
+> Q2: Determine how many HIV-1 protease structures are in the current PDB?
+      92.7% for proteins of HIV-1 protease structures
+
+Download CSV File From 
+
+```{r}
+data<-read.csv("Data Export Summary.csv")
+head(data)
+```
+
+```{r}
+(data$Total)
+```
+Total Number of Entries
+```{r}
+sum(data$Total)
+```
+Proportion of Entries From Each Method
+```{r}
+(data$Total / sum(data$Total)) * 100
+```
+
+Proportion That Are Protein
+```{r}
+sum(data$Proteins) / sum(data$Total) * 100
+```
+
+Significant Figures
+```{r}
+round(sum(data$Proteins) / sum(data$Total) *100, 2)
+```
+
+## HIV-Pr Structure Analysis
+
+Here we will read the 1HSG PDB structure and select protein component and write out a **new protein-only** PDB format file. We then do the same for the ligand (i.e. knwn drug molecule) creating a **ligand-only** PDB file.
+
+```{r}
+library(bio3d)
+```
+
+```{r}
+# Read pdb
+pdb <- read.pdb("1hsg.pdb")
+pdb
+#atom.select()
+#write.pdb()
+#trim.pdb()
+# Select chain A
+a.inds <- atom.select(pdb, chain="A")
+#
+```
+
+## Atom Select With "ligand" we only see 45 atoms, with a non-protein nucleic residue of 1 (MK1)
+```{r}
+ligand <- atom.select(pdb, "ligand", value = TRUE)
+write.pdb(ligand, file ="1hsg_ligand.pdb")
+```
+
+## Atom Select With "protein"
+```{r}
+protein <- atom.select(pdb, "protein", value = TRUE)
+write.pdb(protein, file = "1hsg_protein.pdb")
+```
+
+
+
