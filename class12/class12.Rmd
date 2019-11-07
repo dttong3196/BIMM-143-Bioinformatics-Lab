@@ -1,0 +1,13 @@
+---
+title: "Class12: Structural Bioinformatics II"
+author: "Duy Tong"
+date: "11/7/2019"
+output: github_document
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Prep For Docking
+We want to produce a protein-only PDB file and a drug only PDB file 
