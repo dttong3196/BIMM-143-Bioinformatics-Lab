@@ -17,12 +17,11 @@ knitr::opts_chunk$set(echo = TRUE)
       92.7% for proteins of HIV-1 protease structures
 
 Download CSV File From 
-
 ```{r}
 data<-read.csv("Data Export Summary.csv")
 head(data)
 ```
-
+Total of Different Experimental Method
 ```{r}
 (data$Total)
 ```
@@ -30,17 +29,15 @@ Total Number of Entries
 ```{r}
 sum(data$Total)
 ```
-Proportion of Entries From Each Method
+Finding the Proportion of Entries From Each Method
 ```{r}
 (data$Total / sum(data$Total)) * 100
 ```
-
-Proportion That Are Protein
+Finding the Proportion That Are Protein
 ```{r}
 sum(data$Proteins) / sum(data$Total) * 100
 ```
-
-Significant Figures
+Using Significant Figures
 ```{r}
 round(sum(data$Proteins) / sum(data$Total) *100, 2)
 ```
@@ -49,33 +46,126 @@ round(sum(data$Proteins) / sum(data$Total) *100, 2)
 
 Here we will read the 1HSG PDB structure and select protein component and write out a **new protein-only** PDB format file. We then do the same for the ligand (i.e. knwn drug molecule) creating a **ligand-only** PDB file.
 
+Info:
+HIV-1 protease is an enzyme that is vital for the replication of HIV. It cleaves newly formed polypeptide chains at appropriate locations so that they form function proteins. Hence, drugs that target this protein could be vital for suppressing viral replication. A handful of drugs - called HIV-1 protease inhibitors (saquinavir, ritonavir, indinavir, nelfinavir, etc.) are currently commercially available that inhibit the function of this protein, by binding in the catalytic site that typically binds the polypeptide.
+
+Using VMD Program
+> Q3: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+  Hydrogen atom in the water molecule has only 1 Angstrom, so we cannot see the water molecule, except the oxygen molecule.
+
+> Q4: There is a conserved water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have?
+  The water molecule is at residue 127.
+
+> Q5: As you have hopefully observed HIV protease is a homodimer (i.e. it is composed of twoidentical chains). With the aid of the graphic display and the sequence viewer extension can you identify secondary structure elements that are likely to only form in the dimer rather than the monomer?
+  The 3rd residue of ILE on beta sheet. 
+
+## Section 3: Introduction to Bio3D in R
+
+Getting Started With Bio3D
 ```{r}
 library(bio3d)
 ```
 
+Reading PDB File Data into R
 ```{r}
 # Read pdb
 pdb <- read.pdb("1hsg.pdb")
-pdb
+print(pdb)
+
 #atom.select()
 #write.pdb()
 #trim.pdb()
-# Select chain A
+#Select chain A
 a.inds <- atom.select(pdb, chain="A")
-#
 ```
 
-## Atom Select With "ligand" we only see 45 atoms, with a non-protein nucleic residue of 1 (MK1)
+> Q6:How many amino acid residues are there in this pdb object and what are the two nonprotein residues?
+  There are 198 amino acids residues and the two nonprotein residues are HOH(water) and MK1(indinavir)
+
+Atom Select With "ligand"
 ```{r}
 ligand <- atom.select(pdb, "ligand", value = TRUE)
 write.pdb(ligand, file ="1hsg_ligand.pdb")
 ```
 
-## Atom Select With "protein"
+Atom Select With "protein"
 ```{r}
 protein <- atom.select(pdb, "protein", value = TRUE)
 write.pdb(protein, file = "1hsg_protein.pdb")
 ```
 
+Using Attribute
+```{r}
+attributes(pdb)
+```
 
+To Access Individual Attributes...Use **$attribute**
+```{r}
+head(pdb$atom)
+```
+
+```{r}
+# Print a Subset of $atom data for the first two atoms
+pdb$atom[1:2, c("eleno", "elety", "x", "y", "z")]
+```
+
+```{r}
+# Note that individual $atom records can also be accessed like this
+pdb$atom$elety[1:2]
+```
+
+```{r}
+# Which allows us to do the following
+plot.bio3d(pdb$atom$b[pdb$calpha], sse=pdb, typ="l", ylab= "B-factor")
+```
+
+> Q7. What type of R object is pdb$atom?
+
+```{r}
+str(pdb$atom)
+```
+
+```{r}
+# Print a summary of the coordinate data in $xyz
+pdb$xyz
+```
+
+```{r}
+# Examine the row and column dimensions
+dim(pdb$xyz)
+```
+
+```{r}
+# Print coordinates for the first two atom
+pdb$xyz[1, atom2xyz(1:2)]
+```
+
+## Section 4: Atom Selection
+
+```{r}
+# Select all C-alpha atoms (return their indices)
+ca.inds <- atom.select(pdb, "calpha")
+```
+
+```{r}
+# Print details of the first few selected atoms
+head(pdb$atom[ca.inds$atom, ])
+```
+
+```{r}
+# Select xyz coordinate
+head(pdb$xyz[, ca.inds$xyz])
+```
+
+## Section 5: 3D Structure Viewing in R
+
+```{r}
+# Load the Package
+library("bio3d.view")
+```
+
+```{r}
+# View the 3D structure
+view(pdb, "overview", col = "sse")
+```
 
