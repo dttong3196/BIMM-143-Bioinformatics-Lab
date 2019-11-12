@@ -1,0 +1,211 @@
+---
+title: "class14: Genome Informatics II"
+author: "Duy Tong"
+date: "11/12/2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Section #1: Instal packages...
+```{r eval=FALSE}
+install.packages("BiocManager")
+BiocManager::install("DESeq2")
+#Always install in console!
+```
+ 
+Side-Notes: Aligning Reads to Reference Genome
+
+The computational analysis of an RNA-seq experiment begins from the FASTQ files that contain the nucleotide sequence of each read and a quality score at each position. These reads must first be aligned to a reference genome or transcriptome. The output of this alignment step is commonly stored in a file format called SAM/BAM. This is the workflow we followed last day.
+
+Once the reads have been aligned, there are a number of tools that can be used to count the number of reads/fragments that can be assigned to genomic features for each sample. These often take as input SAM/BAM alignment files and a file specifying the genomic features, e.g. a GFF3 or GTF file specifying the gene models as obtained from ENSEMBLE or UCSC.
+
+In the workflow we’ll use here, the abundance of each transcript was quantified using kallisto (software, paper) and transcript-level abundance estimates were then summarized to the gene level to produce length-scaled counts using the R package txImport (software, paper), suitable for using in count-based analysis tools like DESeq. This is the starting point - a “count matrix”, where each cell indicates the number of reads mapping to a particular gene (in rows) for each sample (in columns). This is where we left off last day when analyzing our 1000 genome data.
+
+DESeq2 Required Inputs
+
+First column of colData must match column names of countData
+ 
+Section #2: Import countData and colData
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE)
+metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+```
+
+
+Have a peak...
+```{r}
+head(counts)
+```
+
+```{r}
+head(metadata)
+```
+
+This view is showing the SRR1039508... as the control or treated and ENSG: are the genes. The counts data has a different views and the metadata also has a different view.
+
+```{r}
+#how many experiemnts do we have
+nrow(counts)
+ncol(counts)
+nrow(metadata)
+ncol(metadata)
+```
+
+Section #3: Toy Differntial Gene Expression
+
+We want to know if there is a difference in expression values for control (non-drug) vs. treated (i.e. drug added cell lines).
+
+First step is to find which experienments were the control experiments and then get the average values across all control expeirments (or treated)
+
+For the control group...
+```{r}
+control <- metadata[metadata[,"dex"]=="control",]
+control$id
+```
+
+Now calculate the mean values across these control columns of **countdata**...
+```{r}
+# These are the rows for control groups
+control.mean <- rowSums(counts[,control$id])/length(control$id)
+names(control.mean) <- counts$ensgene
+```
+
+For the treatment group...
+```{r}
+treated <-metadata[metadata[,"dex"]=="treated",]
+treated
+```
+
+Now calculate the mean values across these control columns of **countdata**
+```{r}
+treated.mean <- rowSums(counts[,treated$id])/length(treated$id)
+names(control.mean) <- counts$ensgene
+```
+
+> Q1. How would you make the above code more robust? What would happen if you were to add more samples. Would the values obtained with the excat code above be correct?
+
+> Q2. Follow the same procedure for the treated samples (i.e. calculate the mean per gene accross drug treated samples and assign to a labeled vector called treated.mean)
+
+Combine our Meancount Data for Bookeping Purposes.
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+Create Scatter Plot to Plot Control Vs. Treated
+```{r}
+plot(meancounts$control.mean, meancounts$treated.mean, log = "xy", xlab = " log Control", ylab = " log Treated", main = "Control Vs. Treated")
+```
+
+Calculate log2foldchange
+
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
+```
+
+```{r}
+#Exclude all the 0 from data.set only focus on changes
+# == 0 means that which ones are 0.
+# arr.ind = shows where and which columns and rows where values are 0.
+zero.vals <-which(meancounts[,1:2]==0, arr.ind=TRUE)
+
+# unique syntax removes any row with 0 values that are duplicated.
+to.rm <- unique(zero.vals[,1])
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+```
+
+A common threshold used for calling something differentially expressed is a log2(FoldChange) of greater than 2 or less than -2. Let’s filter the dataset both ways to see how many genes are up or down-regulated.
+
+```{r}
+up.ind <- mycounts$log2fc > 2
+down.ind <- mycounts$log2fc < (-2)
+```
+
+Calculate how many genes are upregulated...
+```{r}
+sum(up.ind)
+```
+
+Calculate how many genes are downregulated...
+```{r}
+sum(down.ind)
+```
+
+```{r}
+head( mycounts[up.ind,])
+```
+
+## Skipped Section 4
+
+## Section 5: DESeq2 Analysis
+Let’s do this the right way. DESeq2 is an R package for analyzing count-based NGS data like RNA-seq. It is available from Bioconductor. Bioconductor is a project to provide tools for analyzing high-throughput genomic data including RNA-seq, ChIP-seq and arrays.
+
+```{r}
+library(DESeq2)
+```
+
+We will use the DESeqDataSetFromMatrix() function to build the required DESeqDataSet object and call it dds, short for our DESeqDataSet. If you get a warning about “some variables in design formula are characters, converting to factors” don’t worry about it. Take a look at the dds object once you create it.
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = metadata, design = ~dex, tidy = TRUE)
+dds
+```
+
+Run DESeq2
+
+```{r}
+dds <-DESeq(dds)
+```
+
+Getting the Results
+```{r}
+res <- results(dds)
+res
+```
+
+Summarize Data
+```{r}
+summary(dds)
+```
+
+## Summary Plot: Volcano Plot
+Volcano Plot: further away from 0 -> bigger change. This figure will combine both Fold Change and the pv-value into one overivew figure indicating the porportion of genes with large scale signficant differences in their expression.
+
+Volcano Plot: Black and White
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+```
+
+Volcano Plot With Colors...
+```{r}
+# Add Colors
+mycols <- rep("gray", nrow(res))
+# Make points with +2 -2 fold change blue
+mycols[abs(res$log2FoldChange) > 2] <- "blue"
+#make point below p-value cutoff gray
+mycols[abs(res$padj) > 0.05] <- "gray"
+
+plot(res$log2FoldChange, -log(res$padj), col = mycols)
+#Adding abline
+abline(v = c(-2,2), col="gray", lty =2)
+abline(h = -log(0.05), col ="gray", lty =2)
+```
+
+```{r}
+# Setup your point color vector
+mycols <- rep("gray", nrow(res))
+mycols [abs(res$log2FoldChange) >2] <-"red"
+
+inds <-(res$padj < 0.01) & (abs(res$log2FoldChange) >2)
+mycols[inds] <- "blue"
+```
+
+Save our results for next day...
+```{r}
+write.csv(res, file="expression_results.csv")
+```
