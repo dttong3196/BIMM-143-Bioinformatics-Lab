@@ -1,0 +1,243 @@
+---
+title: "Lecture 18: Cancer Genomics"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GitHub Documents
+
+Load the Packages
+```{r}
+library(GenomicDataCommons)
+library(TCGAbiolinks)
+library(maftools)
+```
+
+Check Status
+```{r}
+status()
+```
+
+## Querying the GDC From R
+ Interaction with GDC by searching the resource to find data that we are interested in investigating futher
+```{r}
+projects <- getGDCprojects()
+head(projects)
+```
+
+```{r}
+cases_by_project <- cases() %>%
+  facet("project.project_id") %>%
+  aggregations()
+head(cases_by_project)
+```
+
+Q9. Write the R code to make a barplot of the cases per project. Lets plot this data with a log scale for the y axis (log="y"), rotated axis labels (las=2) and color the bar coresponding to the TCGA-PAAD project.
+
+```{r}
+#Check whether TCGA-PAAD is in
+(x$key == "TCGA-PAAD")
+```
+
+```{r}
+x <- cases_by_project$project.project_id
+
+# Make a custom color vector for our plot
+# Make the column lightblue
+colvec <- rep("lightblue", nrow(x))
+colvec[x$key == "TCGA-PAAD"] <- "red"
+
+# Plot with 'log' for y axis and rotate labels with 'las'
+par(mar = c(7,4,0,0))  
+# doc_count -> cases for each different patients in cases_by_project & it shows cases for TCGA-PAAD
+barplot(x$doc_count, names.arg=x$key, log="y", col=colvec, las=2)
+```
+
+```{r}
+# Additions to BarGraph
+colvec <- rep("lightblue", nrow(x))
+colvec[ (x$key == "TCGA-PAAD")] <- "red"
+colvec
+```
+
+Determine For Given Project How Many Cases and What Type of Data Available for Each Cases
+
+```{r}
+samp <- getSampleFilesSummary("TCGA-PAAD")
+head(samp)
+```
+
+```{r}
+# Use **GDCquery() to focus in particular data type that we are intersted in such as 'find all genes expression data files for all pancreatic cancer patients'
+query <- GDCquery(project="TCGA-PAAD",
+                  data.category="Transcriptome Profiling",
+                  data.type="Gene Expression Quantification")
+
+ans <- getResults(query)
+```
+
+```{r}
+# Print Results
+head(ans)
+```
+
+```{r}
+# Examine the data organization and values in returned **ans** object
+View(ans)
+```
+
+```{r}
+#We should see that ans contains a row for every RNA-Seq data file from the ‘TCGA-PAAD’ project. At the time of writing this was 546 RNA-Seq data files.
+nrow(ans)
+```
+
+## Variant Analysis With R
+Note we could go to the NCI-GDC web portal and enter the Advanced Search page and then construct a search query to find MAF format somatic mutation files for our ‘TCGA-PAAD’ project.
+
+After some exploration of the website I came up with the following query: “cases.project.project_id in ["TCGA-PAAD"] and files.data_type in ["Masked Somatic Mutation"] and files.data_format in ["MAF"]”.
+
+Q9. How many MAF files for the TCGA-PAAD project were found from this advanced web search?
+
+```{r}
+#Lets do the same search in R with the help of the TCGAbiolinks package function GDCquery_Maf(). For brevity we will focus on only one of the MAF files for this project, namely the MuTect2 workflow variant calls.
+
+maf.file <- GDCquery_Maf(tumor="PAAD", pipelines = "mutect")
+```
+
+```{r}
+#And lets take a peak at the first 6 rows of this data:
+
+head(maf.file)
+```
+
+Q10. What argument could we use to write the MAF file into a csv document in your current working directory?
+
+```{r}
+# MAF analysis. The MAF file contents is now stored as a dataframe and the maftools package workflow, which starts with a MAF file or dataframe, can proceed, starting with reading the pancreatic cancer MAF file.
+
+vars = read.maf(maf = maf.file, verbose = FALSE)
+```
+
+```{r}
+# Plotting MAF Summary.We can use plotmafSummary() function to plot a summary of the maf object, which displays number of variants in each sample as a stacked barplot and variant types as a boxplot summarized by Variant_Classification. We can add either mean or median line to the stacked barplot to display average/median number of variants across the cohort.
+
+plotmafSummary(vars)
+```
+
+```{r}
+# Drawing Oncoplots.A very useful summary representation of this data can be obtained via so-called oncoplots, also known as waterfall plots.
+
+oncoplot(maf = vars, top = 10)
+```
+
+```{r}
+# Oncoplot for our top 10 most frequently mutated genes
+pdf("oncoplot_panc.pdf")
+oncoplot(maf = vars, top = 10, fontSize = 12)
+dev.off()
+```
+
+```{r}
+# Oncostrip.We can visualize any set of genes using the oncostrip() function, which draws mutations in each sample similar to the graphic on the NCI-GDC web portal. Note that oncostrip() can be used to draw any number of genes using the input top or genes arguments
+
+oncostrip(maf=vars, genes=c("KRAS", "TP53"))
+```
+
+```{r}
+lollipopPlot(vars, gene='KRAS')
+
+```
+
+Q11. Adapt the code above to produce a lollipop plot for p53 (i.e. the ‘TP53’ gene)?
+
+```{r}
+lollipopPlot(vars, gene='TP53')
+```
+
+Summary
+Additional functionality is available for each of the GenomicDataCommons, TCGAbiolinks and maftools packages not to mention the 100’s of other bioinformatics R packages that can now work with this type of data in both exploratory and targeted analysis modes.
+
+The purpose of this hands-on session was to highlight how one can leverage three such packages to quickly gain insight into rapidly expanding public cancer genomics data-sets. Hopefully this will inspire your further exploration of these and other bioinformatics R packages.
+
+## Part 2: Design Cancer Vaccine
+```{r}
+seqs <-read.fasta("lecture18_sequences.fa")
+seqs
+```
+
+Q1: Identify sequence regions that contain all 9-mer peptides that are only found in the tumor. Hint: You will need to first identify the sites of mutation in the above sequences and then extract the surrounding subsequence region. This subsequence should encompass all possible 9-mers in the tumor derived sequence. In other words extract the subsequence from 8 residues before and 8 residues after all point mutations in the tumor sequence.
+  1st Sequence: MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAM
+  2nd Sequence: DLMLSPDDIEQWFTEDPGPDEAP
+  3rd Sequence:
+
+```{r}
+# Calculate positional identity scores
+ide <- conserv(seqs$ali, method="identity")
+mutant.sites <- which(ide < 1) 
+pos <- which(ide < 1)[1]
+pos
+subseq.pos <- (pos-8):(pos+8)
+
+seqs$ali[2,subseq.pos]
+# 0.5 (50%) meaning that this site is nonconservative (non identical site)
+# or ide <1 => false/true
+# [1] = 1st position < 1
+```
+
+```{r}
+# Exclude gap possitions from analysis
+gaps <- gap.inspect(seqs)
+mutant.sites <- mutant.sites[mutant.sites %in% gaps$f.inds]
+print(mutant.sites)
+# Mutation sites at 41, 65, 213, 259
+```
+
+```{r}
+## Make a "names" label for our output sequences (one per mutant)
+mutant.names <- paste0(seqs$ali["P53_wt",mutant.sites],
+                       mutant.sites,
+                       seqs$ali["P53_mutant",mutant.sites])
+
+mutant.names
+```
+
+Extract all 9-mer mutant
+```{r}
+## Sequence positions surounding each mutant site
+start.position <- mutant.sites - 8
+end.position <-  mutant.sites + 8
+```
+
+```{r}
+# Blank matrix to store sub-sequences
+store.seqs <- matrix("-", nrow=length(mutant.sites), ncol=17)
+rownames(store.seqs) <- mutant.names
+```
+
+```{r}
+## Extract each sub-sequence
+for(i in 1:length(mutant.sites)) {
+  store.seqs[i,] <- seqs$ali["P53_mutant",start.position[i]:end.position[i]]
+}
+
+store.seqs
+# THese are the possible mutations in the mutant cell that if HCM binds to these sequences it can produce a tumor.
+```
+
+## Section 2: Patient HLA Typing Results and HLA Binding Prediction
+
+D41L: SPLPSQAMLDLMLSPDD
+R65W: DPGPDEAPWMPEAAPPV
+R213V:YLDDRNTFVHSVVVPYE
+D259V: ILTIITLEVVPYE
+
+Q2: Identify 9-mer peptides in the identified sequence regions unique to the tumor that can be potentially presented to T cells. Hint: Use the IEDB HLA binding prediction server above to identify the top ranked 9-mer peptides for each patient HLA (see above for HLA typing results).
+
+Q3: Identify the top peptide for each patient HLA allele (see above). Hint: You can download a CSV formated result file for all predictions and use R or a spreadsheet application to identify the top ranked peptides for each allele. Which approach would you rather use if you were going to scale to 100s of analysis tasks?
+
+Q4: Are any of your top ranked peptides unique to the tumor? Hint: Use NCBI-BLAST to check your top identified peptides against Human sequences in the NR database.
+
+Q5: Which peptide would you choose for potential vaccine design and why?
