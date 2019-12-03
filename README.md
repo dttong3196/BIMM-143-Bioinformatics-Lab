@@ -12,6 +12,6 @@ This is my work from [BIMM 143 at UC San Diego](https://bioboot.github.io/bimm14
 - Class12: [Using Bioinformatics to Analyze & Design Drugs](https://github.com/dttong3196/BIMM-143-Bioinformatics-Lab/blob/master/class12/class12.md)
 - Class14: [Transcriptomics & Analysis of RNA-Seq Data](https://github.com/dttong3196/BIMM-143-Bioinformatics-Lab/blob/master/class14/class14.md)
 - Class15: [Annotation & Interpretation of Genome](https://github.com/dttong3196/BIMM-143-Bioinformatics-Lab/blob/master/class15/class15.md)
-- Class16: [Introduction to UNIX for Bioinformatics(NONE)
+- Class16: [Introduction to UNIX for Bioinformatics](NONE)
 - Class17: [Biological Network Analysis](https://github.com/dttong3196/BIMM-143-Bioinformatics-Lab/blob/master/class17/class17.md)
 - Class18: [Exploration of Cancer Genomics](https://github.com/dttong3196/BIMM-143-Bioinformatics-Lab/blob/master/class18/class18.md)
