@@ -9,34 +9,50 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Section #1: Instal packages...
+Background Information
+
+  Data from a published RNA-seq experiement where airway smooth muscle cells were treated with dexamethasone, synthetic glucocorticoid steroid with anti-inflammatory effects.
+  Glucocorticoids can be used to treat patients with asthma to reduce inflammation of the airways.
+
+# Section #1: Bioconductor and DESeq2 Setup
 ```{r eval=FALSE}
 install.packages("BiocManager")
 BiocManager::install("DESeq2")
+
+#Can check whether or not you have installed... Check in console
+#library(BiocManager)
+#library(DESeq2)
+
 #Always install in console!
 ```
  
 Side-Notes: Aligning Reads to Reference Genome
 
-The computational analysis of an RNA-seq experiment begins from the FASTQ files that contain the nucleotide sequence of each read and a quality score at each position. These reads must first be aligned to a reference genome or transcriptome. The output of this alignment step is commonly stored in a file format called SAM/BAM. This is the workflow we followed last day.
+The computational analysis of an RNA-seq experiment begins from the FASTQ files that contain the nucleotide sequence of each read and a quality score at each position. These reads must first be aligned to a reference genome or transcriptome. The output of this alignment step is commonly stored in a file format called SAM/BAM. 
 
-Once the reads have been aligned, there are a number of tools that can be used to count the number of reads/fragments that can be assigned to genomic features for each sample. These often take as input SAM/BAM alignment files and a file specifying the genomic features, e.g. a GFF3 or GTF file specifying the gene models as obtained from ENSEMBLE or UCSC.
-
-In the workflow we’ll use here, the abundance of each transcript was quantified using kallisto (software, paper) and transcript-level abundance estimates were then summarized to the gene level to produce length-scaled counts using the R package txImport (software, paper), suitable for using in count-based analysis tools like DESeq. This is the starting point - a “count matrix”, where each cell indicates the number of reads mapping to a particular gene (in rows) for each sample (in columns). This is where we left off last day when analyzing our 1000 genome data.
+Once the reads have been aligned, there are a number of tools that can be used to count the number of reads/fragments that can be assigned to genomic features for each sample. These often take as input SAM/BAM alignment files and a file specifying the genomic features, e.g. a GFF3 or GTF file specifying the gene models as obtained from **ENSEMBLE** or **UCSC**.
 
 DESeq2 Required Inputs
 
-First column of colData must match column names of countData
+countData: count matrix; number of reads mapping to each gene for each sample.
+
+colData: describes metadata about the columns of countData.
+
+**First column of colData MUST MATCH column names of countData**
  
-Section #2: Import countData and colData
+# Section #2: Import countData and colData
 
 ```{r}
 counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE)
 metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+
+#stringAsFactors: argument to the data.frame(), that indicates whether strings in a data frame should be treated as factor variables or as just plain strings.
+
+#stringAsFactors = FALSE, meaning that you're planning to change the type of strings.
 ```
 
 
-Have a peak...
+Take a look at the data.
 ```{r}
 head(counts)
 ```
@@ -45,24 +61,26 @@ head(counts)
 head(metadata)
 ```
 
-This view is showing the SRR1039508... as the control or treated and ENSG: are the genes. The counts data has a different views and the metadata also has a different view.
+The counts data is showing each genes of each samples, ENSG are the genes. The metadata (colData) view is showing the the groups (i.e SRR1039508...). Just think that countData has more specific details whereas, the colData just shows only the columns details.
 
 ```{r}
-#how many experiemnts do we have
+#How many experiemnts do we have
 nrow(counts)
 ncol(counts)
 nrow(metadata)
 ncol(metadata)
+#Total of 38694 genes and 9 experiments
 ```
 
-Section #3: Toy Differntial Gene Expression
+#Section #3: Toy Differntial Gene Expression
 
-We want to know if there is a difference in expression values for control (non-drug) vs. treated (i.e. drug added cell lines).
+We want to know if there is a difference in expression values for control (non-drug) vs. treated (drug added)
 
 First step is to find which experienments were the control experiments and then get the average values across all control expeirments (or treated)
 
-For the control group...
+For Control Group.
 ```{r}
+# == exactly equal to
 control <- metadata[metadata[,"dex"]=="control",]
 control$id
 ```
@@ -86,10 +104,12 @@ treated.mean <- rowSums(counts[,treated$id])/length(treated$id)
 names(control.mean) <- counts$ensgene
 ```
 
-> Q1. How would you make the above code more robust? What would happen if you were to add more samples. Would the values obtained with the excat code above be correct?
+> Q1. How would you make the above code more robust? What would happen if you were to add more samples. Would the values obtained with the exact code above be correct?
+  If more samples are added, then the length would change therefore the mean will increase.No, the code above will be different because more samples are added.
 
 > Q2. Follow the same procedure for the treated samples (i.e. calculate the mean per gene accross drug treated samples and assign to a labeled vector called treated.mean)
-
+  Already assigned.
+  
 Combine our Meancount Data for Bookeping Purposes.
 ```{r}
 meancounts <- data.frame(control.mean, treated.mean)
