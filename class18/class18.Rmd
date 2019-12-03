@@ -39,7 +39,7 @@ Q9. Write the R code to make a barplot of the cases per project. Lets plot this 
 
 ```{r}
 #Check whether TCGA-PAAD is in
-(x$key == "TCGA-PAAD")
+#(x$key == "TCGA-PAAD")
 ```
 
 ```{r}
