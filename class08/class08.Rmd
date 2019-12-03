@@ -18,7 +18,7 @@ plot(x)
 ```
 Use the kmeans() function setting k to 2 and nstart=20
 
-#Use kmean()
+#Use kmeans()
 ```{r}
 k <- kmeans(x, centers = 2, nstart = 20)
 ```
@@ -28,8 +28,6 @@ k <- kmeans(x, centers = 2, nstart = 20)
 k
 ```
 # Cluster Means: the center -> -3 & 3
-# Cluster Vector: 
-#Available Components:
 
 #Q. How many points are in each cluster?
   30 points each.
@@ -53,13 +51,13 @@ k$cluster
 k$centers
 ```
 
-#Plot x colored by the kmeans cluster assignment and add cluster centers as blue points
+#Plot (x) kmeans cluster assignment and add cluster centers as blue points
 ```{r}
 plot(x, col=k$cluster)
 points(k$centers, col = "blue", pch = 15)
 ```
 
-## Hierarchinal Clustering in R
+## Hierarchical Clustering in R
 the `hclust()` function requires a distance matrix as input. You can get this from the `dist()` function
 
 ```{r}
