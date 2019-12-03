@@ -1,5 +1,5 @@
 ---
-title: "class17": Metagenomics Co-occurance Networks
+title: "class17: Metagenomics Co-occurance Networks"
 output: github_document
 ---
 
