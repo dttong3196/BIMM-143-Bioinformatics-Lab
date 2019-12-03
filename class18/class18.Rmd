@@ -163,6 +163,11 @@ Additional functionality is available for each of the GenomicDataCommons, TCGAbi
 The purpose of this hands-on session was to highlight how one can leverage three such packages to quickly gain insight into rapidly expanding public cancer genomics data-sets. Hopefully this will inspire your further exploration of these and other bioinformatics R packages.
 
 ## Part 2: Design Cancer Vaccine
+
+```{r}
+library(bio3d)
+```
+
 ```{r}
 seqs <-read.fasta("lecture18_sequences.fa")
 seqs
